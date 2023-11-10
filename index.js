@@ -76,10 +76,20 @@ async function run() {
   });
 
   //gettasks
-  app.get("/tasks", verifyJWT, async (req, res) => {
-    const result = await tasksCollection.find().toArray();
-    res.send(result);
+  app.get("/tasks/:status", verifyJWT, async (req, res) => {
+    const status = req.params.status;
+
+    console.log(status);
+
+    if (status === "all") {
+      const result = await tasksCollection.find().toArray();
+      res.send(result);
+    } else {
+      const result = await tasksCollection.find({ status: status }).toArray();
+      res.send(result);
+    }
   });
+
   //add task
   app.post("/tasks", verifyJWT, async (req, res) => {
     const doc = req.body;
@@ -100,6 +110,7 @@ async function run() {
         description: body.description,
         assign_by: body.assign_by,
         assign_to: body.assign_to,
+        status: body.status,
       },
     };
     const result = await tasksCollection.updateOne(filter, updateData);
@@ -108,9 +119,24 @@ async function run() {
   });
   app.delete("/tasks/:id", async (req, res) => {
     const id = req.params.id;
-    console.log(id);
     const query = { _id: new ObjectId(id) };
     const result = await tasksCollection.deleteOne(query);
+    res.send(result);
+  });
+
+  // search
+  app.get("/search/:searchText", async (req, res) => {
+    const searchText = req.params.searchText;
+    console.log(searchText);
+    const result = await tasksCollection
+      .find({
+        $or: [
+          { title: { $regex: searchText, $options: "i" } },
+          { description: { $regex: searchText, $options: "i" } },
+        ],
+      })
+      .toArray();
+    console.log(result);
     res.send(result);
   });
 
